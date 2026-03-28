@@ -1,72 +1,44 @@
 import styles from './Features.module.css'
 
 const FEATURES = [
-  {
-    icon: '⚡',
-    title: 'Sub-5 second generation',
-    desc: "Groq's LPU inference engine is the fastest in the world. Get 3 high-quality variants before you finish your coffee.",
-    tag: 'Groq LPU',
-  },
-  {
-    icon: '🎯',
-    title: 'Platform-native copy',
-    desc: 'Every output respects platform rules — 280 chars for Twitter, no hashtags for Google Ads. Never get flagged for formatting.',
-    tag: '5 platforms',
-  },
-  {
-    icon: '🔬',
-    title: 'Quality scoring engine',
-    desc: 'Each variant is scored 0–100 across readability, CTA strength, emotional engagement, and platform compliance.',
-    tag: 'Local NLP',
-  },
-  {
-    icon: '🎨',
-    title: '5 brand tones',
-    desc: 'Playful, Professional, Urgent, Inspirational, Conversational. Your voice, applied consistently across every platform.',
-    tag: 'Tone engine',
-  },
-  {
-    icon: '📦',
-    title: '5 content types',
-    desc: 'Social posts, taglines, ad headlines, product descriptions, and promotional offers — all from one input.',
-    tag: 'Multi-format',
-  },
-  {
-    icon: '🔒',
-    title: 'Your data, your key',
-    desc: 'Your Groq API key never leaves your browser. Zero server-side storage. Zero tracking. GDPR compliant by design.',
-    tag: 'Privacy-first',
-  },
+  { icon: '⚡', title: 'Sub-5 second generation', desc: "Groq's LPU is the fastest inference engine on earth. 3 polished variants before you finish reading this sentence.", tag: 'Groq LPU' },
+  { icon: '🎯', title: 'Platform-native limits', desc: '280 chars for X, 2200 for Instagram, no hashtags for Google Ads. Every output is formatted for its platform — automatically.', tag: '5 platforms' },
+  { icon: '🔬', title: 'Quality score engine', desc: 'Each variant scores 0–100 on readability, CTA strength, emotional pull, and platform fit. Know which copy wins before you post.', tag: 'Local NLP' },
+  { icon: '🎨', title: '5 brand tones', desc: 'Playful, Professional, Urgent, Inspirational, Conversational — your voice applied consistently across every platform and format.', tag: 'Tone model' },
+  { icon: '📦', title: '5 content types', desc: 'Social posts, taglines, ad headlines, product descriptions, promotional offers — all from one product description.', tag: 'Multi-format' },
+  { icon: '🔒', title: 'Privacy by design', desc: 'API key in env vars, never exposed. Zero server-side storage. Zero tracking. Scores computed locally — no extra API calls.', tag: 'Zero-data' },
 ]
 
 const STEPS = [
+  { num: '01', title: 'Describe your product', desc: 'Name and a 2-sentence description. Be specific — the AI rewards detail with much better output.' },
+  { num: '02', title: 'Configure your output', desc: 'Pick platforms, tone, content type, CTA. Mix and match — generate 45 variants in a single click.' },
+  { num: '03', title: 'Groq generates instantly', desc: 'LLaMA 3.3 70B via Groq crafts 3 distinct variants per combination. Different angles, same brand voice.' },
+  { num: '04', title: 'Score, pick, publish', desc: 'Review quality scores for each variant, copy the winner, and post. Agency work in under 60 seconds.' },
+]
+
+const SAMPLES = [
   {
-    num: '01',
-    title: 'Describe your product',
-    desc: 'Enter your product name and a short description. Be specific — better input = better output.',
+    platform: '📸 Instagram', tone: 'Playful', score: 88, color: '#4ade80',
+    text: '✨ Fall vibes in a jar. Our pumpkin spice + cedarwood candle is back — and it\'s everything. Hand-poured in small batches, because some things are worth the extra love. 🍂 Gift it or keep it (we won\'t judge). Shop link in bio!',
+    tags: '#SoyCandles #FallHome #SmallBatchGoods',
   },
   {
-    num: '02',
-    title: 'Configure your output',
-    desc: 'Pick your platforms, tone, content type, and CTA preference. Mix and match freely.',
+    platform: '🔍 Google Ads', tone: 'Urgent', score: 82, color: '#a3e635',
+    text: 'Limited Stock — Hand-Poured Soy Candles. Shop Before They\'re Gone.',
+    tags: null,
   },
   {
-    num: '03',
-    title: 'Generate with Groq',
-    desc: 'Hit generate. Groq\'s LLaMA 3.3 70B crafts 3 distinct variants per combination in seconds.',
-  },
-  {
-    num: '04',
-    title: 'Score, refine, publish',
-    desc: 'Review quality scores, copy your best variant, and post directly. Agency work in under a minute.',
+    platform: '💼 LinkedIn', tone: 'Professional', score: 85, color: '#4ade80',
+    text: 'Small-batch craftsmanship meets seasonal inspiration. Our hand-poured soy candles are made with care — not on a conveyor belt. Because the details matter. Learn More →',
+    tags: null,
   },
 ]
 
 export default function Features() {
   return (
     <>
-      {/* Features grid */}
-      <section className={styles.section}>
+      {/* Features */}
+      <section className={styles.section} id="features">
         <div className={styles.container}>
           <div className={styles.sectionHead}>
             <span className={styles.eyebrow}>Why ContentSpark</span>
@@ -79,12 +51,11 @@ export default function Features() {
               Built for founders who move fast and can't afford to sound generic.
             </p>
           </div>
-
           <div className={styles.featureGrid}>
-            {FEATURES.map((f, i) => (
-              <div key={f.title} className={styles.featureCard} style={{ animationDelay: `${i * 0.06}s` }}>
+            {FEATURES.map(f => (
+              <div key={f.title} className={styles.featureCard}>
                 <div className={styles.featureIconRow}>
-                  <span className={styles.featureIcon}>{f.icon}</span>
+                  <div className={styles.featureIconWrap}>{f.icon}</div>
                   <span className={styles.featureTag}>{f.tag}</span>
                 </div>
                 <h3 className={styles.featureTitle}>{f.title}</h3>
@@ -96,35 +67,32 @@ export default function Features() {
       </section>
 
       {/* How it works */}
-      <section className={styles.howSection}>
+      <section className={styles.howSection} id="how">
         <div className={styles.container}>
           <div className={styles.sectionHead}>
             <span className={styles.eyebrow}>How it works</span>
             <h2 className={styles.heading}>
-              From product description to
+              Product description to
               <br />
               <em>publish-ready copy.</em>
             </h2>
           </div>
-
           <div className={styles.steps}>
             {STEPS.map((s, i) => (
               <div key={s.num} className={styles.step}>
-                <div className={styles.stepNumWrap}>
+                <div className={styles.stepNumRow}>
                   <span className={styles.stepNum}>{s.num}</span>
-                  {i < STEPS.length - 1 && <div className={styles.stepLine} />}
+                  {i < STEPS.length - 1 && <div className={styles.stepConnector} />}
                 </div>
-                <div className={styles.stepContent}>
-                  <h3 className={styles.stepTitle}>{s.title}</h3>
-                  <p className={styles.stepDesc}>{s.desc}</p>
-                </div>
+                <h3 className={styles.stepTitle}>{s.title}</h3>
+                <p className={styles.stepDesc}>{s.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Sample output showcase */}
+      {/* Sample outputs */}
       <section className={styles.showcaseSection}>
         <div className={styles.container}>
           <div className={styles.sectionHead}>
@@ -133,41 +101,19 @@ export default function Features() {
               See what <em>great copy</em> looks like.
             </h2>
           </div>
-
           <div className={styles.showcaseGrid}>
-            <div className={styles.showcaseCard}>
-              <div className={styles.showcaseHeader}>
-                <span className={styles.showcasePlatform}>📸 Instagram · Playful</span>
-                <span className={styles.showcaseScore} style={{ color: '#34d399' }}>88</span>
+            {SAMPLES.map(s => (
+              <div key={s.platform} className={styles.showcaseCard}>
+                <div className={styles.showcaseHeader}>
+                  <span className={styles.showcasePlatform}>{s.platform} · {s.tone}</span>
+                  <span className={styles.showcaseScore} style={{ color: s.color }}>{s.score}</span>
+                </div>
+                <p className={styles.showcaseText}>
+                  {s.text}
+                  {s.tags && <span className={styles.hash}> {s.tags}</span>}
+                </p>
               </div>
-              <p className={styles.showcaseText}>
-                ✨ Fall vibes in a jar. Our pumpkin spice + cedarwood candle is back — and it's everything.
-                Hand-poured in small batches, because some things are worth the extra love. 🍂
-                Gift it or keep it (we won't judge). Shop link in bio!
-                <span className={styles.hash}> #SoyCandles #FallHome #SmallBatchGoods</span>
-              </p>
-            </div>
-
-            <div className={styles.showcaseCard}>
-              <div className={styles.showcaseHeader}>
-                <span className={styles.showcasePlatform}>🔍 Google Ads · Urgent</span>
-                <span className={styles.showcaseScore} style={{ color: '#a3e635' }}>82</span>
-              </div>
-              <p className={styles.showcaseText}>
-                Limited Stock — Hand-Poured Soy Candles | Shop Now
-              </p>
-            </div>
-
-            <div className={styles.showcaseCard}>
-              <div className={styles.showcaseHeader}>
-                <span className={styles.showcasePlatform}>💼 LinkedIn · Professional</span>
-                <span className={styles.showcaseScore} style={{ color: '#34d399' }}>85</span>
-              </div>
-              <p className={styles.showcaseText}>
-                Small-batch craftsmanship meets seasonal inspiration. Our hand-poured soy candles
-                are made with care — not on a conveyor belt. Because the details matter. Learn More →
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
