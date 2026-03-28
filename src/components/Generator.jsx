@@ -59,7 +59,55 @@ function VariantCard({ text, index, platformId, tone, isError }) {
   )
 }
 
-function ResultsSection({ results, tone }) {
+function SkeletonCard() {
+  return (
+    <div style={{
+      background: 'var(--bg2)', border: '1px solid var(--border)',
+      borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      {[100, 85, 60, 40].map((w, i) => (
+        <div key={i} style={{
+          height: i === 0 ? 10 : 12, borderRadius: 6, width: `${w}%`,
+          background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
+          backgroundSize: '200% 100%',
+          animation: 'shimmer 1.4s infinite',
+          animationDelay: `${i * 0.1}s`,
+        }} />
+      ))}
+      <div style={{ marginTop: 8, height: 4, borderRadius: 2, width: '70%', background: 'rgba(255,255,255,0.06)' }} />
+    </div>
+  )
+}
+
+function downloadAllVariants(results, productName) {
+  const lines = []
+  lines.push('CONTENTSPARK AI — Generated Content')
+  lines.push(`Product: ${productName}`)
+  lines.push(`Generated: ${new Date().toLocaleString()}`)
+  lines.push('='.repeat(60))
+  lines.push('')
+  Object.entries(results).forEach(([key, variants]) => {
+    const [platId, ct] = key.split('__')
+    const pl = PLATFORMS.find(x => x.id === platId)
+    lines.push(`▸ ${pl?.label} — ${ct}`)
+    lines.push('-'.repeat(40))
+    variants.forEach((v, i) => {
+      lines.push(`Variant ${i + 1}:`)
+      lines.push(v)
+      lines.push('')
+    })
+    lines.push('')
+  })
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `contentspark-${productName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function ResultsSection({ results, tone, productName }) {
   const [activeTab, setActiveTab] = useState(() => Object.keys(results)[0] || null)
   const tabs = Object.keys(results)
   const [platId, ct] = activeTab ? activeTab.split('__') : []
@@ -71,9 +119,24 @@ function ResultsSection({ results, tone }) {
       <div className={styles.resultsHeader}>
         <div>
           <h2 className={styles.resultsTitle}>Generated Content</h2>
-          <p className={styles.resultsSub}>{tabs.length} combination{tabs.length > 1 ? 's' : ''} · 3 variants each</p>
+          <p className={styles.resultsSub}>
+            {tabs.length} combination{tabs.length > 1 ? 's' : ''} · 3 variants each
+          </p>
         </div>
-        <div className={styles.resultsMeta}>
+        <div className={styles.resultsMeta} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={() => downloadAllVariants(results, productName)}
+            style={{
+              padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              border: '1px solid var(--border2)', background: 'var(--surface2)',
+              color: 'var(--text2)', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)' }}
+          >
+            ↓ Download .txt
+          </button>
           <span className={styles.groqBadge}>
             <span className={styles.groqDot} />
             Generated with Groq
@@ -90,8 +153,10 @@ function ResultsSection({ results, tone }) {
               className={`${styles.tab} ${key === activeTab ? styles.tabActive : ''}`}
               onClick={() => setActiveTab(key)}
             >
-              <span>{pl?.icon}</span><span>{pl?.label}</span>
-              <span className={styles.tabSep}>·</span><span>{ctype}</span>
+              <span>{pl?.icon}</span>
+              <span>{pl?.label}</span>
+              <span className={styles.tabSep}>·</span>
+              <span>{ctype}</span>
             </button>
           )
         })}
@@ -139,10 +204,10 @@ export default function Generator() {
     setArr(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val])
 
   const validate = () => {
-    if (!groqApiKey) { setError('Groq API key not configured. Contact the team.'); return false }
+    if (!groqApiKey) { setError('Groq API key not configured. Add VITE_GROQ_API_KEY to your environment variables.'); return false }
     if (!productName.trim()) { setError('Product / Service name is required.'); return false }
     if (!description.trim()) { setError('Description is required.'); return false }
-    if (description.trim().length < 10) { setError('Description too short — add more detail.'); return false }
+    if (description.trim().length < 10) { setError('Description is too short — add more detail for better results.'); return false }
     if (selPlatforms.length === 0) { setError('Select at least one platform.'); return false }
     if (selCTs.length === 0) { setError('Select at least one content type.'); return false }
     return true
@@ -194,8 +259,11 @@ export default function Generator() {
   return (
     <section id="generator" className={styles.section}>
       <div className={styles.sectionLabel}>
-        <span className={styles.labelLine} /><span>Content Generator</span><span className={styles.labelLine} />
+        <span className={styles.labelLine} />
+        <span>Content Generator</span>
+        <span className={styles.labelLine} />
       </div>
+
       <div className={styles.container}>
         <div className={styles.formCard}>
           <div className={styles.row2}>
@@ -219,7 +287,8 @@ export default function Generator() {
             </label>
             <textarea className={`${styles.input} ${styles.textarea}`} value={description}
               onChange={e => setDescription(e.target.value.slice(0, 300))}
-              placeholder="What is it, who is it for, what's the key benefit?" rows={4} />
+              placeholder="What is it, who is it for, what's the key benefit or differentiator? The more specific, the better the output."
+              rows={4} />
           </div>
 
           <div className={styles.field}>
@@ -284,7 +353,18 @@ export default function Generator() {
         </div>
 
         <div ref={resultsRef}>
-          {hasResults && <ResultsSection results={results} tone={tone} />}
+          {loading && Object.keys(results).length === 0 && (
+            <div style={{ marginTop: 48 }}>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ height: 28, width: 220, borderRadius: 8, background: 'rgba(255,255,255,0.05)', marginBottom: 8 }} />
+                <div style={{ height: 16, width: 160, borderRadius: 6, background: 'rgba(255,255,255,0.03)' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                <SkeletonCard /><SkeletonCard /><SkeletonCard />
+              </div>
+            </div>
+          )}
+          {hasResults && <ResultsSection results={results} tone={tone} productName={productName} />}
         </div>
       </div>
     </section>

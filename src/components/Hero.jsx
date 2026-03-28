@@ -5,8 +5,8 @@ const ROTATING_WORDS = ['Instagram', 'LinkedIn', 'Twitter', 'Facebook', 'Google 
 const STATS = [
   { value: '< 5s', label: 'Generation time' },
   { value: '3×', label: 'Variants per request' },
-  { value: '100%', label: 'Free tier (Groq)' },
   { value: '5', label: 'Platforms supported' },
+  { value: '100%', label: 'Free to use' },
 ]
 
 export default function Hero({ onGetStarted }) {
@@ -26,21 +26,17 @@ export default function Hero({ onGetStarted }) {
 
   return (
     <section className={styles.hero}>
-      {/* Ambient background orbs */}
       <div className={styles.orb1} />
       <div className={styles.orb2} />
       <div className={styles.orb3} />
-      {/* Grid overlay */}
       <div className={styles.grid} />
 
       <div className={styles.container}>
-        {/* Badge */}
         <div className={styles.badge}>
           <span className={styles.badgeDot} />
           Powered by Groq · LLaMA 3.3 70B · Free tier
         </div>
 
-        {/* Headline */}
         <h1 className={styles.headline}>
           Agency-quality copy for
           <br />
@@ -52,29 +48,22 @@ export default function Hero({ onGetStarted }) {
         </h1>
 
         <p className={styles.sub}>
-          Stop staring at a blank screen. Describe your product, choose your
-          platform and tone — ContentSpark AI writes 3 high-converting variants
-          instantly. No subscription. No agency fees. Just results.
+          Small businesses spend 3+ hours a week writing social media content.
+          ContentSpark AI turns a product description into platform-ready,
+          agency-quality copy — instantly. No copywriting skills needed.
         </p>
 
-        {/* CTA buttons */}
         <div className={styles.ctaRow}>
           <button className={styles.btnPrimary} onClick={onGetStarted}>
             <span className={styles.btnIcon}>✦</span>
             Generate content free
             <span className={styles.btnArrow}>→</span>
           </button>
-          <a
-            className={styles.btnSecondary}
-            href="https://console.groq.com"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Get Groq API key ↗
-          </a>
+          <button className={styles.btnSecondary} onClick={onGetStarted}>
+            See how it works ↓
+          </button>
         </div>
 
-        {/* Stats strip */}
         <div className={styles.stats}>
           {STATS.map(s => (
             <div key={s.label} className={styles.stat}>
@@ -84,13 +73,12 @@ export default function Hero({ onGetStarted }) {
           ))}
         </div>
 
-        {/* Preview card */}
         <div className={styles.previewCard}>
           <div className={styles.previewBar}>
             <div className={styles.previewDots}>
               <span /><span /><span />
             </div>
-            <span className={styles.previewLabel}>Live generation preview</span>
+            <span className={styles.previewLabel}>Live output preview</span>
             <span className={styles.previewBadge}>Instagram · Playful</span>
           </div>
           <div className={styles.previewContent}>
@@ -109,9 +97,29 @@ export default function Hero({ onGetStarted }) {
                 <span className={styles.previewScoreLabel}>Quality Score</span>
               </div>
               <div className={styles.previewActions}>
+                <span className={styles.previewCharCount}>218 / 2200 chars</span>
                 <button className={styles.previewCopy}>Copy</button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className={styles.problemStrip}>
+          <div className={styles.problemItem}>
+            <span className={styles.problemX}>✕</span>
+            <span>Agency: $500–$5,000/month</span>
+          </div>
+          <div className={styles.problemItem}>
+            <span className={styles.problemX}>✕</span>
+            <span>Freelancers: slow turnaround</span>
+          </div>
+          <div className={styles.problemItem}>
+            <span className={styles.problemX}>✕</span>
+            <span>DIY: 3+ hours a week wasted</span>
+          </div>
+          <div className={styles.problemItem} style={{ color: 'var(--accent)' }}>
+            <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓</span>
+            <span style={{ fontWeight: 600 }}>ContentSpark AI: free, instant</span>
           </div>
         </div>
       </div>

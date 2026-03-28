@@ -14,9 +14,6 @@ export function Navbar({ onGenerate }) {
         <div className={styles.navLinks}>
           <a href="#features" className={styles.navLink}>Features</a>
           <a href="#how" className={styles.navLink}>How it works</a>
-          <a href="https://console.groq.com" target="_blank" rel="noreferrer" className={styles.navLink}>
-            Get API key ↗
-          </a>
         </div>
         <button className={styles.navCta} onClick={onGenerate}>
           Try it free →
@@ -73,8 +70,8 @@ export function Footer() {
         </div>
       </div>
       <div className={styles.footerBottom}>
-        <span>© 2026 ContentSpark AI. Built for the hackathon.</span>
-        <span>Made with Groq free tier — zero cost, maximum quality.</span>
+        <span>© 2026 ContentSpark AI. All rights reserved.</span>
+        <span>Zero cost · Zero tracking · Maximum quality.</span>
       </div>
     </footer>
   )
