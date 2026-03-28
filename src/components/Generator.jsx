@@ -1,10 +1,15 @@
 import { useState, useRef, useCallback } from 'react'
 import { PLATFORMS, TONES, CONTENT_TYPES, CTAS, EMOJI_PREFS, GROQ_API, MODEL, buildPrompt, computeQualityScore, scoreLabel } from '../utils.js'
+
+
 import styles from './Generator.module.css'
 
 function Chip({ label, active, onClick, desc }) {
   return (
-    <button className={`${styles.chip} ${active ? styles.chipActive : ''}`} onClick={onClick}>
+    <button
+      className={`${styles.chip} ${active ? styles.chipActive : ''}`}
+      onClick={onClick}
+    >
       {label}
       {desc && <span className={styles.chipDesc}>{desc}</span>}
     </button>
@@ -25,11 +30,13 @@ function VariantCard({ text, index, platformId, tone, isError }) {
     })
   }
 
-  if (isError) return (
-    <div className={`${styles.varCard} ${styles.varCardError}`}>
-      <p className={styles.varError}>{text}</p>
-    </div>
-  )
+  if (isError) {
+    return (
+      <div className={`${styles.varCard} ${styles.varCardError}`}>
+        <p className={styles.varError}>{text}</p>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.varCard}>
@@ -37,7 +44,10 @@ function VariantCard({ text, index, platformId, tone, isError }) {
         <span className={styles.varNum}>Variant {index + 1}</span>
         <div className={styles.varActions}>
           {overLimit && <span className={styles.overLimit}>Over limit</span>}
-          <button className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ''}`} onClick={copy}>
+          <button
+            className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ''}`}
+            onClick={copy}
+          >
             {copied ? '✓ Copied' : 'Copy'}
           </button>
         </div>
@@ -81,11 +91,12 @@ function SkeletonCard() {
 
 function downloadAllVariants(results, productName) {
   const lines = []
-  lines.push('CONTENTSPARK AI — Generated Content')
+  lines.push(`CONTENTSPARK AI — Generated Content`)
   lines.push(`Product: ${productName}`)
   lines.push(`Generated: ${new Date().toLocaleString()}`)
   lines.push('='.repeat(60))
   lines.push('')
+
   Object.entries(results).forEach(([key, variants]) => {
     const [platId, ct] = key.split('__')
     const pl = PLATFORMS.find(x => x.id === platId)
@@ -98,6 +109,7 @@ function downloadAllVariants(results, productName) {
     })
     lines.push('')
   })
+
   const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -109,6 +121,7 @@ function downloadAllVariants(results, productName) {
 
 function ResultsSection({ results, tone, productName }) {
   const [activeTab, setActiveTab] = useState(() => Object.keys(results)[0] || null)
+
   const tabs = Object.keys(results)
   const [platId, ct] = activeTab ? activeTab.split('__') : []
   const variants = activeTab ? results[activeTab] || [] : []
@@ -149,7 +162,8 @@ function ResultsSection({ results, tone, productName }) {
           const [pid, ctype] = key.split('__')
           const pl = PLATFORMS.find(x => x.id === pid)
           return (
-            <button key={key}
+            <button
+              key={key}
               className={`${styles.tab} ${key === activeTab ? styles.tabActive : ''}`}
               onClick={() => setActiveTab(key)}
             >
@@ -177,12 +191,52 @@ function ResultsSection({ results, tone, productName }) {
 
       <div className={styles.varGrid}>
         {variants.map((v, i) => (
-          <VariantCard key={i} text={v} index={i} platformId={platId} tone={tone} isError={v.startsWith('Error:')} />
+          <VariantCard
+            key={i}
+            text={v}
+            index={i}
+            platformId={platId}
+            tone={tone}
+            isError={v.startsWith('Error:')}
+          />
         ))}
       </div>
     </div>
   )
 }
+
+const DEMO_EXAMPLES = [
+  {
+    label: '🕯️ Soy Candles',
+    productName: 'Hand-poured Soy Candles',
+    description: 'Small-batch soy candles in seasonal scents — pumpkin spice, cedarwood, and vanilla oak. Made by hand in limited quantities. Perfect as gifts or a cozy home treat.',
+    platform: 'instagram',
+    tone: 'Playful',
+    contentType: 'Social Post',
+    cta: 'Shop Now',
+    emojiPref: 'On',
+  },
+  {
+    label: '🍔 Food Truck',
+    productName: 'Spice Route Food Truck',
+    description: 'South Asian street food truck serving authentic butter chicken wraps, masala fries, and mango lassi. Operating in downtown Mumbai. Fresh, fast, and full of flavour.',
+    platform: 'twitter',
+    tone: 'Urgent',
+    contentType: 'Social Post',
+    cta: 'Visit Us',
+    emojiPref: 'On',
+  },
+  {
+    label: '🧶 Etsy Shop',
+    productName: 'Knitted Goods by Sandra',
+    description: 'Hand-knitted scarves, beanies, and baby blankets made from premium merino wool. Each piece takes 4–8 hours to craft. Warm, personal, and unique — no two items are identical.',
+    platform: 'facebook',
+    tone: 'Conversational',
+    contentType: 'Product Description',
+    cta: 'Shop Now',
+    emojiPref: 'Minimal',
+  },
+]
 
 export default function Generator() {
   const groqApiKey = import.meta.env.VITE_GROQ_API_KEY || ''
@@ -203,6 +257,18 @@ export default function Generator() {
   const toggleArr = (arr, setArr, val) =>
     setArr(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val])
 
+  const fillDemo = (demo) => {
+    setProductName(demo.productName)
+    setDescription(demo.description)
+    setSelPlatforms([demo.platform])
+    setTone(demo.tone)
+    setSelCTs([demo.contentType])
+    setCta(demo.cta)
+    setEmojiPref(demo.emojiPref)
+    setResults({})
+    setError('')
+  }
+
   const validate = () => {
     if (!groqApiKey) { setError('Groq API key not configured. Add VITE_GROQ_API_KEY to your environment variables.'); return false }
     if (!productName.trim()) { setError('Product / Service name is required.'); return false }
@@ -215,9 +281,14 @@ export default function Generator() {
 
   const generate = useCallback(async () => {
     if (!validate()) return
-    setLoading(true); setError(''); setResults({}); setProgress(0)
+    setLoading(true)
+    setError('')
+    setResults({})
+    setProgress(0)
+
     const tasks = []
     for (const p of selPlatforms) for (const ct of selCTs) tasks.push({ p, ct })
+
     const newResults = {}
     let done = 0
 
@@ -228,36 +299,49 @@ export default function Generator() {
       try {
         const res = await fetch(GROQ_API, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${groqApiKey}`,
+          },
           body: JSON.stringify({
-            model: MODEL, max_tokens: 1200, temperature: 0.88,
+            model: MODEL,
+            max_tokens: 1200,
+            temperature: 0.88,
             messages: [{ role: 'user', content: buildPrompt(p, ct, { productName, description, tone, cta, emojiPref }) }],
           }),
         })
+
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}))
-          throw new Error(errData?.error?.message || `HTTP ${res.status}`)
+          throw new Error(errData?.error?.message || `HTTP ${res.status} — check your API key`)
         }
+
         const data = await res.json()
         const raw = data.choices?.[0]?.message?.content || ''
         const variants = raw.split('---VARIANT---').map(v => v.trim()).filter(Boolean).slice(0, 3)
+        const scores = variants.map(v => computeQualityScore(v, p, tone))
         newResults[key] = variants.length >= 1 ? variants : ['No content returned. Try again.']
       } catch (e) {
         newResults[key] = [`Error: ${e.message}`]
       }
+
       done++
       setProgress(Math.round((done / tasks.length) * 100))
       setResults({ ...newResults })
     }
 
-    setLoading(false); setLoadingStatus('')
-    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200)
+    setLoading(false)
+    setLoadingStatus('')
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 200)
   }, [productName, description, selPlatforms, tone, selCTs, cta, emojiPref])
 
   const hasResults = Object.keys(results).length > 0
 
   return (
     <section id="generator" className={styles.section}>
+      {/* Section label */}
       <div className={styles.sectionLabel}>
         <span className={styles.labelLine} />
         <span>Content Generator</span>
@@ -265,71 +349,158 @@ export default function Generator() {
       </div>
 
       <div className={styles.container}>
+        {/* Demo examples bar */}
+        <div className={styles.demoBar}>
+          <span className={styles.demoLabel}>✦ Try an example:</span>
+          <div className={styles.demoButtons}>
+            {DEMO_EXAMPLES.map(demo => (
+              <button
+                key={demo.label}
+                className={styles.demoBtn}
+                onClick={() => fillDemo(demo)}
+              >
+                {demo.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Form card */}
         <div className={styles.formCard}>
+          {/* Row 1: Name + CTA */}
           <div className={styles.row2}>
             <div className={styles.field}>
-              <label className={styles.label}>Product / Service Name <span className={styles.req}>*</span></label>
-              <input className={styles.input} value={productName} onChange={e => setProductName(e.target.value)} placeholder="e.g. Hand-poured Soy Candles, South Asian Food Truck…" />
+              <label className={styles.label}>
+                Product / Service Name <span className={styles.req}>*</span>
+              </label>
+              <input
+                className={styles.input}
+                value={productName}
+                onChange={e => setProductName(e.target.value)}
+                placeholder="e.g. Hand-poured Soy Candles, South Asian Food Truck…"
+              />
             </div>
             <div className={styles.field}>
               <label className={styles.label}>Call to Action</label>
-              <select className={styles.input} value={cta} onChange={e => setCta(e.target.value)}>
+              <select
+                className={styles.input}
+                value={cta}
+                onChange={e => setCta(e.target.value)}
+              >
                 <option value="">Auto-detect best CTA</option>
                 {CTAS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
 
+          {/* Description */}
           <div className={styles.field}>
             <label className={styles.label}>
               Description <span className={styles.req}>*</span>
               <span className={styles.charCount}>{description.length}/300</span>
             </label>
-            <textarea className={`${styles.input} ${styles.textarea}`} value={description}
+            <textarea
+              className={`${styles.input} ${styles.textarea}`}
+              value={description}
               onChange={e => setDescription(e.target.value.slice(0, 300))}
               placeholder="What is it, who is it for, what's the key benefit or differentiator? The more specific, the better the output."
-              rows={4} />
+              rows={4}
+            />
           </div>
 
+          {/* Platforms */}
           <div className={styles.field}>
-            <label className={styles.label}>Target Platforms <span className={styles.req}>*</span> <span className={styles.fieldHint}>Multi-select</span></label>
+            <label className={styles.label}>
+              Target Platforms <span className={styles.req}>*</span>
+              <span className={styles.fieldHint}>Multi-select</span>
+            </label>
             <div className={styles.chipGroup}>
-              {PLATFORMS.map(p => <Chip key={p.id} label={`${p.icon} ${p.label}`} active={selPlatforms.includes(p.id)} onClick={() => toggleArr(selPlatforms, setSelPlatforms, p.id)} />)}
+              {PLATFORMS.map(p => (
+                <Chip
+                  key={p.id}
+                  label={`${p.icon} ${p.label}`}
+                  active={selPlatforms.includes(p.id)}
+                  onClick={() => toggleArr(selPlatforms, setSelPlatforms, p.id)}
+                />
+              ))}
             </div>
           </div>
 
+          {/* Tone */}
           <div className={styles.field}>
-            <label className={styles.label}>Brand Tone <span className={styles.fieldHint}>Single select</span></label>
+            <label className={styles.label}>
+              Brand Tone
+              <span className={styles.fieldHint}>Single select</span>
+            </label>
             <div className={styles.chipGroup}>
-              {TONES.map(t => <Chip key={t.id} label={t.id} desc={t.desc} active={tone === t.id} onClick={() => setTone(t.id)} />)}
+              {TONES.map(t => (
+                <Chip
+                  key={t.id}
+                  label={t.id}
+                  desc={t.desc}
+                  active={tone === t.id}
+                  onClick={() => setTone(t.id)}
+                />
+              ))}
             </div>
           </div>
 
+          {/* Content Types */}
           <div className={styles.field}>
-            <label className={styles.label}>Content Types <span className={styles.req}>*</span> <span className={styles.fieldHint}>Multi-select</span></label>
+            <label className={styles.label}>
+              Content Types <span className={styles.req}>*</span>
+              <span className={styles.fieldHint}>Multi-select</span>
+            </label>
             <div className={styles.chipGroup}>
-              {CONTENT_TYPES.map(ct => <Chip key={ct.id} label={`${ct.icon} ${ct.id}`} active={selCTs.includes(ct.id)} onClick={() => toggleArr(selCTs, setSelCTs, ct.id)} />)}
+              {CONTENT_TYPES.map(ct => (
+                <Chip
+                  key={ct.id}
+                  label={`${ct.icon} ${ct.id}`}
+                  active={selCTs.includes(ct.id)}
+                  onClick={() => toggleArr(selCTs, setSelCTs, ct.id)}
+                />
+              ))}
             </div>
           </div>
 
+          {/* Emoji */}
           <div className={styles.field}>
             <label className={styles.label}>Emoji Usage</label>
             <div className={styles.chipGroup}>
-              {EMOJI_PREFS.map(e => <Chip key={e} label={e} active={emojiPref === e} onClick={() => setEmojiPref(e)} />)}
+              {EMOJI_PREFS.map(e => (
+                <Chip key={e} label={e} active={emojiPref === e} onClick={() => setEmojiPref(e)} />
+              ))}
             </div>
           </div>
 
+          {/* Summary preview */}
           <div className={styles.summary}>
-            <span className={styles.summaryItem}><strong>{selPlatforms.length}</strong> platform{selPlatforms.length !== 1 ? 's' : ''}</span>
+            <span className={styles.summaryItem}>
+              <strong>{selPlatforms.length}</strong> platform{selPlatforms.length !== 1 ? 's' : ''}
+            </span>
             <span className={styles.summaryDot} />
-            <span className={styles.summaryItem}><strong>{selCTs.length}</strong> content type{selCTs.length !== 1 ? 's' : ''}</span>
+            <span className={styles.summaryItem}>
+              <strong>{selCTs.length}</strong> content type{selCTs.length !== 1 ? 's' : ''}
+            </span>
             <span className={styles.summaryDot} />
-            <span className={styles.summaryItem}><strong>{selPlatforms.length * selCTs.length * 3}</strong> total variants</span>
+            <span className={styles.summaryItem}>
+              <strong>{selPlatforms.length * selCTs.length * 3}</strong> total variants
+            </span>
           </div>
 
-          {error && <div className={styles.error}><span>⚠</span> {error}</div>}
+          {/* Error */}
+          {error && (
+            <div className={styles.error}>
+              <span>⚠</span> {error}
+            </div>
+          )}
 
-          <button className={`${styles.genBtn} ${loading ? styles.genBtnLoading : ''}`} onClick={generate} disabled={loading}>
+          {/* Generate button */}
+          <button
+            className={`${styles.genBtn} ${loading ? styles.genBtnLoading : ''}`}
+            onClick={generate}
+            disabled={loading}
+          >
             {loading ? (
               <span className={styles.loadingInner}>
                 <span className={styles.spinner} />
@@ -345,6 +516,7 @@ export default function Generator() {
             )}
           </button>
 
+          {/* Progress bar */}
           {loading && (
             <div className={styles.progressTrack}>
               <div className={styles.progressFill} style={{ width: `${progress}%` }} />
@@ -352,6 +524,7 @@ export default function Generator() {
           )}
         </div>
 
+        {/* Results / Skeleton */}
         <div ref={resultsRef}>
           {loading && Object.keys(results).length === 0 && (
             <div style={{ marginTop: 48 }}>
@@ -364,7 +537,13 @@ export default function Generator() {
               </div>
             </div>
           )}
-          {hasResults && <ResultsSection results={results} tone={tone} productName={productName} />}
+          {hasResults && (
+            <ResultsSection
+              results={results}
+              tone={tone}
+              productName={productName}
+            />
+          )}
         </div>
       </div>
     </section>

@@ -487,3 +487,46 @@
   .apiInput { min-width: 100%; }
   .resultsHeader { flex-direction: column; }
 }
+
+/* Demo examples bar */
+.demoBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.demoLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.demoButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.demoBtn {
+  padding: 7px 14px;
+  border-radius: 100px;
+  border: 1px dashed rgba(240,192,64,0.35);
+  background: rgba(240,192,64,0.06);
+  color: rgba(240,192,64,0.8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.demoBtn:hover {
+  background: rgba(240,192,64,0.14);
+  border-color: rgba(240,192,64,0.6);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.demoBtn:active {
+  transform: translateY(0);
+}
