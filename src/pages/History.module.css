@@ -1,0 +1,78 @@
+.page { padding: 40px 0 80px; min-height: 100vh; }
+.container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+.pageHeader { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
+.pageTitle { font-family: var(--font-display); font-size: 36px; font-weight: 400; letter-spacing: -0.03em; color: var(--text); margin-bottom: 4px; }
+.pageSub { font-size: 14px; color: var(--text3); }
+
+.statsRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+.statCard {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; display: flex; flex-direction: column; gap: 4px;
+}
+.statIcon { font-size: 20px; margin-bottom: 4px; }
+.statValue { font-family: var(--font-display); font-size: 28px; color: var(--accent); line-height: 1; }
+.statLabel { font-size: 12px; color: var(--text3); }
+
+.filterRow { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.filterBtn {
+  padding: 7px 14px; border-radius: 100px; cursor: pointer; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text2);
+  transition: all 0.15s; font-family: var(--font-body);
+}
+.filterBtn:hover { border-color: var(--border2); color: var(--text); }
+.filterBtnActive { background: rgba(240,192,64,0.12); border-color: rgba(240,192,64,0.4); color: var(--accent); }
+
+.list { display: flex; flex-direction: column; gap: 8px; }
+
+.genRow {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden; transition: border-color 0.18s;
+}
+.genRow:hover { border-color: var(--border2); }
+.genHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; cursor: pointer; gap: 16px;
+}
+.genMeta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.genPlatform { font-size: 13px; font-weight: 600; color: var(--text); }
+.genSep { color: var(--border2); font-size: 12px; }
+.genType { font-size: 13px; color: var(--text2); }
+.genTone { font-size: 12px; color: var(--text3); }
+.genRight { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.genScore { display: flex; align-items: baseline; gap: 3px; font-size: 16px; }
+.genScoreLabel { font-size: 11px; color: var(--text3); }
+.genDate { font-size: 12px; color: var(--text3); }
+.deleteBtn {
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  font-size: 12px; padding: 4px; transition: color 0.15s;
+}
+.deleteBtn:hover { color: var(--red); }
+.chevron { font-size: 18px; color: var(--text3); transition: transform 0.2s; display: inline-block; }
+.chevronOpen { transform: rotate(90deg); }
+.genProduct { padding: 0 20px 14px; font-size: 13px; color: var(--text3); font-style: italic; }
+
+.variantList { border-top: 1px solid var(--border); padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+.variantItem { }
+.variantTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.variantNum { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
+.variantScoreRow { display: flex; align-items: center; gap: 10px; }
+.variantText { font-size: 13px; line-height: 1.65; color: rgba(240,237,230,0.8); white-space: pre-wrap; }
+.saveBtn {
+  padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;
+  border: 1px solid rgba(240,192,64,0.4); background: rgba(240,192,64,0.08); color: var(--accent);
+  transition: all 0.15s; font-family: var(--font-body);
+}
+.saveBtn:hover:not(:disabled) { background: rgba(240,192,64,0.18); }
+.saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.saveBtnDone { border-color: var(--green-border); background: var(--green-bg); color: var(--green); }
+
+.empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 0; color: var(--text3); }
+.emptyIcon { font-size: 40px; }
+.spinner {
+  width: 24px; height: 24px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .statsRow { grid-template-columns: repeat(2, 1fr); }
+}
