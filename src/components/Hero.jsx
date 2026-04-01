@@ -1,13 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import styles from './Hero.module.css'
 
 const ROTATING_WORDS = ['Instagram', 'LinkedIn', 'X / Twitter', 'Facebook', 'Google Ads']
+
 const STATS = [
-  { value: '< 5s', label: 'Per generation' },
-  { value: '3×', label: 'Variants each' },
-  { value: '5', label: 'Platforms' },
-  { value: '0₹', label: 'Cost to use' },
+  { value: 5, suffix: 's', label: 'Generation time', prefix: '< ' },
+  { value: 3, suffix: '×', label: 'Variants each', prefix: '' },
+  { value: 5, suffix: '', label: 'Platforms', prefix: '' },
+  { value: 0, suffix: '₹', label: 'Cost to use', prefix: '' },
 ]
+
+function CountUp({ target, suffix, prefix, duration = 1200 }) {
+  const [current, setCurrent] = useState(0)
+  const started = useRef(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true
+        if (target === 0) { setCurrent(0); return }
+        const steps = 40
+        const step = target / steps
+        let cur = 0
+        const interval = setInterval(() => {
+          cur = Math.min(cur + step, target)
+          setCurrent(Math.round(cur))
+          if (cur >= target) clearInterval(interval)
+        }, duration / steps)
+      }
+    }, { threshold: 0.3 })
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [target, duration])
+
+  if (target === 0) return <span ref={ref}>{prefix}0{suffix}</span>
+  return <span ref={ref}>{prefix}{current}{suffix}</span>
+}
 
 export default function Hero({ onGetStarted }) {
   const [wordIndex, setWordIndex] = useState(0)
@@ -32,7 +61,7 @@ export default function Hero({ onGetStarted }) {
         {/* Badge */}
         <div className={styles.badge}>
           <span className={styles.badgeDot} />
-          <span className={styles.badgePill}>New</span>
+          <span className={styles.badgePill}>GenAI</span>
           Powered by Groq · LLaMA 3.3 70B · Free
         </div>
 
@@ -67,7 +96,9 @@ export default function Hero({ onGetStarted }) {
         <div className={styles.stats}>
           {STATS.map(s => (
             <div key={s.label} className={styles.stat}>
-              <span className={styles.statValue}>{s.value}</span>
+              <span className={styles.statValue}>
+                <CountUp target={s.value} suffix={s.suffix} prefix={s.prefix} />
+              </span>
               <span className={styles.statLabel}>{s.label}</span>
             </div>
           ))}
@@ -77,7 +108,7 @@ export default function Hero({ onGetStarted }) {
         <div className={styles.previewCard}>
           <div className={styles.previewBar}>
             <div className={styles.previewDots}><span /><span /><span /></div>
-            <span className={styles.previewLabel}>contentspark.ai — live output</span>
+            <span className={styles.previewLabel}>contentspark.ai — live output preview</span>
             <span className={styles.previewBadge}>Instagram · Playful</span>
           </div>
           <div className={styles.previewContent}>
@@ -100,6 +131,7 @@ export default function Hero({ onGetStarted }) {
               </div>
               <div className={styles.previewActions}>
                 <span className={styles.previewCharCount}>218 / 2200 chars</span>
+                <div className={styles.bestBadgeHero}>✦ Best</div>
                 <button className={styles.previewCopy}>Copy</button>
               </div>
             </div>
@@ -109,18 +141,28 @@ export default function Hero({ onGetStarted }) {
         {/* Problem strip */}
         <div className={styles.problemStrip}>
           <div className={styles.problemItem}>
-            <span className={styles.problemX}>✕</span> Agency: ₹40k–₹4L/mo
+            <span className={styles.problemX}>✕</span>
+            <span>Agency: ₹40k–₹4L/mo</span>
           </div>
           <div className={styles.problemItem}>
-            <span className={styles.problemX}>✕</span> Freelancers: slow
+            <span className={styles.problemX}>✕</span>
+            <span>Freelancers: slow &amp; costly</span>
           </div>
           <div className={styles.problemItem}>
-            <span className={styles.problemX}>✕</span> DIY: 3+ hrs/week
+            <span className={styles.problemX}>✕</span>
+            <span>DIY: 3+ hrs/week wasted</span>
           </div>
-          <div className={styles.problemItem}>
-            <span className={styles.problemCheck}>✓</span> ContentSpark: free &amp; instant
+          <div className={styles.problemItem} style={{ color: 'var(--text)' }}>
+            <span className={styles.problemCheck}>✓</span>
+            <span style={{ fontWeight: 600 }}>ContentSpark AI: free &amp; instant</span>
           </div>
         </div>
+
+        {/* Trust line */}
+        <p className={styles.trustLine}>
+          🔒 Your data never leaves your browser. API key stored in environment variables only.
+          Zero server-side logging.
+        </p>
       </div>
     </section>
   )
