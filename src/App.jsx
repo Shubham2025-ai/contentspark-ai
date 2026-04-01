@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Hero from './components/Hero.jsx'
-import Features from './components/Features.jsx'
+import Features, { AIArchSection } from './components/Features.jsx'
 import Generator from './components/Generator.jsx'
 import { Footer } from './components/NavFooter.jsx'
 
@@ -183,7 +183,7 @@ export default function App() {
         <Hero onGetStarted={scrollToGenerator} />
 
         <div id="features" data-reveal><Features /></div>
-
+        <div data-reveal><AIArchSection /></div>
         <div id="generator" ref={generatorRef} data-reveal>
           <Generator />
         </div>

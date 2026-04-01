@@ -120,3 +120,93 @@ export default function Features() {
     </>
   )
 }
+
+export function AIArchSection() {
+  const PIPELINE = [
+    { step: '01', label: 'System context', desc: 'Platform rules, character limits, hashtag policies, format constraints', color: '#8b5cf6' },
+    { step: '02', label: 'User input block', desc: 'Product name, description, tone, CTA preference, emoji setting', color: '#f5c842' },
+    { step: '03', label: 'Quality constraints', desc: 'Prohibited patterns, brand safety rules, engagement benchmarks', color: '#06b6d4' },
+    { step: '04', label: 'Few-shot examples', desc: '2–3 high-scoring examples per platform/tone combination injected', color: '#f97316' },
+    { step: '05', label: 'LLaMA 3.3 70B', desc: 'Groq LPU inference — 300+ tokens/sec — 3 distinct variants returned', color: '#4ade80' },
+    { step: '06', label: 'NLP scoring', desc: 'Local quality score: readability + CTA strength + platform fit + engagement', color: '#f87171' },
+  ]
+
+  return (
+    <section style={{ padding: '100px 0', borderTop: '1px solid var(--border)', background: 'linear-gradient(180deg, rgba(245,200,66,0.015) 0%, transparent 100%)' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          <span style={{
+            display: 'inline-block', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 20,
+            padding: '0 16px', position: 'relative',
+          }}>
+            <span style={{ position: 'absolute', top: '50%', right: '100%', width: 32, height: 1, background: 'rgba(245,200,66,0.4)', transform: 'translateY(-50%)' }} />
+            <span style={{ position: 'absolute', top: '50%', left: '100%', width: 32, height: 1, background: 'rgba(245,200,66,0.4)', transform: 'translateY(-50%)' }} />
+            Under the hood
+          </span>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,4vw,52px)', fontWeight: 300, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.08, marginBottom: 16 }}>
+            How the AI <em style={{ fontStyle: 'italic', color: 'var(--text2)' }}>thinks.</em>
+          </h2>
+          <p style={{ fontSize: 16, color: 'var(--text2)', maxWidth: 480, margin: '0 auto', fontWeight: 300, lineHeight: 1.7 }}>
+            Every generation runs through a 6-stage prompt pipeline engineered for small business marketing.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'var(--border)', borderRadius: 24, overflow: 'hidden', border: '1px solid var(--border)' }}>
+          {PIPELINE.map((item, i) => (
+            <div key={item.step}
+              style={{
+                background: 'var(--bg2)', padding: '32px 28px',
+                position: 'relative', overflow: 'hidden', transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg3)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg2)' }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${item.color}55, transparent)` }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: `${item.color}15`, border: `1px solid ${item.color}35`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 800, color: item.color, letterSpacing: '0.04em',
+                }}>{item.step}</div>
+                {i < PIPELINE.length - 1 && (
+                  <span style={{ fontSize: 18, color: 'var(--text4)', marginTop: 6 }}>→</span>
+                )}
+                {i === PIPELINE.length - 1 && (
+                  <span style={{ fontSize: 14, color: 'var(--green)', fontWeight: 700 }}>✓</span>
+                )}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 8, letterSpacing: '-0.01em' }}>{item.label}</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, fontWeight: 300 }}>{item.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Groq speed callout */}
+        <div style={{
+          marginTop: 20, padding: '24px 32px',
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: var_r_lg, display: 'flex', alignItems: 'center',
+          gap: 24, flexWrap: 'wrap',
+        }}>
+          {[
+            { val: '300+', unit: 'tokens/sec', label: 'Groq inference speed' },
+            { val: '70B', unit: 'parameters', label: 'LLaMA 3.3 model size' },
+            { val: '< 5s', unit: 'end-to-end', label: 'From click to results' },
+            { val: '0', unit: 'extra APIs', label: 'Quality scoring is local' },
+          ].map(s => (
+            <div key={s.val} style={{ flex: 1, minWidth: 120, textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 300, color: 'var(--accent)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                {s.val} <span style={{ fontSize: 14, color: 'var(--text3)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>{s.unit}</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4, fontWeight: 300 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const var_r_lg = '18px'
