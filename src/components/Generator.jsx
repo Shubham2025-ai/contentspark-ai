@@ -16,7 +16,35 @@ function Chip({ label, active, onClick, desc }) {
   )
 }
 
-function VariantCard({ text, index, platformId, tone, isError }) {
+// Global toast
+let toastTimer = null
+function showToast(msg) {
+  let el = document.getElementById('cs-toast')
+  if (!el) {
+    el = document.createElement('div')
+    el.id = 'cs-toast'
+    el.style.cssText = `
+      position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);
+      background:#08080f;border:1px solid rgba(245,200,66,0.35);color:var(--accent);
+      padding:10px 24px;border-radius:100px;font-size:13px;font-weight:600;
+      font-family:var(--font-body);z-index:9999;pointer-events:none;
+      transition:all 0.3s cubic-bezier(0.16,1,0.3,1);opacity:0;
+      box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 20px rgba(245,200,66,0.1);
+      letter-spacing:-0.01em;
+    `
+    document.body.appendChild(el)
+  }
+  el.textContent = msg
+  el.style.opacity = '1'
+  el.style.transform = 'translateX(-50%) translateY(0)'
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    el.style.opacity = '0'
+    el.style.transform = 'translateX(-50%) translateY(8px)'
+  }, 2000)
+}
+
+function VariantCard({ text, index, platformId, tone, isError, isBest }) {
   const [copied, setCopied] = useState(false)
   const sc = computeQualityScore(text, platformId, tone)
   const { label: slabel, color } = scoreLabel(sc)
@@ -26,28 +54,27 @@ function VariantCard({ text, index, platformId, tone, isError }) {
   const copy = () => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
+      showToast('✓ Copied to clipboard')
       setTimeout(() => setCopied(false), 2000)
     })
   }
 
-  if (isError) {
-    return (
-      <div className={`${styles.varCard} ${styles.varCardError}`}>
-        <p className={styles.varError}>{text}</p>
-      </div>
-    )
-  }
+  if (isError) return (
+    <div className={`${styles.varCard} ${styles.varCardError}`}>
+      <p className={styles.varError}>{text}</p>
+    </div>
+  )
 
   return (
-    <div className={styles.varCard}>
+    <div className={`${styles.varCard} ${isBest ? styles.varCardBest : ''}`}>
       <div className={styles.varHeader}>
-        <span className={styles.varNum}>Variant {index + 1}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className={styles.varNum}>Variant {index + 1}</span>
+          {isBest && <span className={styles.bestBadge}>✦ Best</span>}
+        </div>
         <div className={styles.varActions}>
           {overLimit && <span className={styles.overLimit}>Over limit</span>}
-          <button
-            className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ''}`}
-            onClick={copy}
-          >
+          <button className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ''}`} onClick={copy}>
             {copied ? '✓ Copied' : 'Copy'}
           </button>
         </div>
@@ -190,16 +217,22 @@ function ResultsSection({ results, tone, productName }) {
       )}
 
       <div className={styles.varGrid}>
-        {variants.map((v, i) => (
-          <VariantCard
-            key={i}
-            text={v}
-            index={i}
-            platformId={platId}
-            tone={tone}
-            isError={v.startsWith('Error:')}
-          />
-        ))}
+        {variants.map((v, i) => {
+          const sc = computeQualityScore(v, platId, tone)
+          const scores = variants.map(x => computeQualityScore(x, platId, tone))
+          const bestIdx = scores.indexOf(Math.max(...scores))
+          return (
+            <VariantCard
+              key={i}
+              text={v}
+              index={i}
+              platformId={platId}
+              tone={tone}
+              isError={v.startsWith('Error:')}
+              isBest={i === bestIdx && !v.startsWith('Error:')}
+            />
+          )
+        })}
       </div>
     </div>
   )

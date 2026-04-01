@@ -118,3 +118,14 @@
   .footerInner { grid-template-columns: 1fr; gap: 40px; }
   .footerRight { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Footer stats */
+.footerStats {
+  display: flex; gap: 24px; margin-top: 4px;
+}
+.footerStat { display: flex; flex-direction: column; gap: 2px; }
+.footerStatVal {
+  font-family: var(--font-display); font-size: 22px;
+  font-weight: 300; color: var(--accent); letter-spacing: -0.03em; line-height: 1;
+}
+.footerStatLabel { font-size: 11px; color: var(--text3); font-weight: 300; }
