@@ -1,51 +1,119 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { PLATFORMS, TONES, CONTENT_TYPES, CTAS, EMOJI_PREFS, GROQ_API, MODEL, buildPrompt, computeQualityScore, scoreLabel } from '../utils.js'
-
-
 import styles from './Generator.module.css'
 
+// ── Toast ────────────────────────────────────────────────────
+let _tt = null
+function showToast(msg, type = 'success') {
+  let el = document.getElementById('cs-toast')
+  if (!el) {
+    el = document.createElement('div')
+    el.id = 'cs-toast'
+    Object.assign(el.style, {
+      position: 'fixed', bottom: '32px', left: '50%',
+      transform: 'translateX(-50%) translateY(20px)',
+      padding: '11px 24px', borderRadius: '100px',
+      fontSize: '13px', fontWeight: '600',
+      fontFamily: 'var(--font-body)', zIndex: '99999',
+      pointerEvents: 'none', opacity: '0',
+      transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+      letterSpacing: '-0.01em', whiteSpace: 'nowrap',
+    })
+    document.body.appendChild(el)
+  }
+  const isSuccess = type === 'success'
+  el.textContent = msg
+  el.style.background = isSuccess ? '#08080f' : 'rgba(248,113,113,0.15)'
+  el.style.border = isSuccess ? '1px solid rgba(245,200,66,0.4)' : '1px solid rgba(248,113,113,0.4)'
+  el.style.color = isSuccess ? 'var(--accent)' : 'var(--red)'
+  el.style.opacity = '1'
+  el.style.transform = 'translateX(-50%) translateY(0)'
+  clearTimeout(_tt)
+  _tt = setTimeout(() => {
+    el.style.opacity = '0'
+    el.style.transform = 'translateX(-50%) translateY(10px)'
+  }, 2400)
+}
+
+// ── Chip ─────────────────────────────────────────────────────
 function Chip({ label, active, onClick, desc }) {
   return (
-    <button
-      className={`${styles.chip} ${active ? styles.chipActive : ''}`}
-      onClick={onClick}
-    >
+    <button className={`${styles.chip} ${active ? styles.chipActive : ''}`} onClick={onClick}>
       {label}
       {desc && <span className={styles.chipDesc}>{desc}</span>}
     </button>
   )
 }
 
-// Global toast
-let toastTimer = null
-function showToast(msg) {
-  let el = document.getElementById('cs-toast')
-  if (!el) {
-    el = document.createElement('div')
-    el.id = 'cs-toast'
-    el.style.cssText = `
-      position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);
-      background:#08080f;border:1px solid rgba(245,200,66,0.35);color:var(--accent);
-      padding:10px 24px;border-radius:100px;font-size:13px;font-weight:600;
-      font-family:var(--font-body);z-index:9999;pointer-events:none;
-      transition:all 0.3s cubic-bezier(0.16,1,0.3,1);opacity:0;
-      box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 20px rgba(245,200,66,0.1);
-      letter-spacing:-0.01em;
-    `
-    document.body.appendChild(el)
-  }
-  el.textContent = msg
-  el.style.opacity = '1'
-  el.style.transform = 'translateX(-50%) translateY(0)'
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    el.style.opacity = '0'
-    el.style.transform = 'translateX(-50%) translateY(8px)'
-  }, 2000)
+// ── Typing text animation ─────────────────────────────────────
+function TypedText({ text, speed = 8 }) {
+  const [displayed, setDisplayed] = useState('')
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    setDisplayed('')
+    setDone(false)
+    if (!text) return
+    let i = 0
+    const tick = () => {
+      i += Math.ceil(text.length / 120) // adaptive speed
+      setDisplayed(text.slice(0, i))
+      if (i < text.length) setTimeout(tick, speed)
+      else setDone(true)
+    }
+    setTimeout(tick, 80)
+  }, [text])
+  return (
+    <span>
+      {displayed}
+      {!done && <span className={styles.cursor}>|</span>}
+    </span>
+  )
 }
 
-function VariantCard({ text, index, platformId, tone, isError, isBest }) {
+// ── Score breakdown ────────────────────────────────────────────
+function ScoreBreakdown({ text, platformId }) {
+  const p = PLATFORMS.find(x => x.id === platformId)
+  const limit = p?.limit || 280
+  const charScore = text.length > 0 && text.length <= limit ? 25 : text.length <= limit * 1.1 ? 12 : 0
+  const ctaScore = /shop|buy|get|order|book|visit|learn|start|claim|try|grab|discover|join/i.test(text) ? 20 : 0
+  const emojiScore = (text.match(/\p{Emoji}/gu) || []).length >= 1 ? 10 : 5
+  const hashCount = (text.match(/#\w+/g) || []).length
+  const hashScore = p?.hashtags && hashCount >= 2 ? 15 : (!p?.hashtags && hashCount === 0) ? 15 : 5
+  const sentences = text.split(/[.!?]+/).filter(Boolean)
+  const avgWords = sentences.reduce((a, s) => a + s.trim().split(/\s+/).length, 0) / (sentences.length || 1)
+  const readScore = avgWords >= 5 && avgWords <= 18 ? 15 : 7
+  const emoScore = /amazing|incredible|love|perfect|best|exclusive|limited|free|now|today|transform|secret/i.test(text) ? 15 : 0
+  const dims = [
+    { label: 'Char limit', score: charScore, max: 25 },
+    { label: 'CTA strength', score: ctaScore, max: 20 },
+    { label: 'Readability', score: readScore, max: 15 },
+    { label: 'Hashtags', score: hashScore, max: 15 },
+    { label: 'Emotion', score: emoScore, max: 15 },
+    { label: 'Emojis', score: emojiScore, max: 10 },
+  ]
+  return (
+    <div className={styles.scoreBreakdown}>
+      {dims.map(d => (
+        <div key={d.label} className={styles.scoreDim}>
+          <div className={styles.scoreDimLabel}>{d.label}</div>
+          <div className={styles.scoreDimBar}>
+            <div className={styles.scoreDimFill} style={{
+              width: `${(d.score / d.max) * 100}%`,
+              background: d.score === d.max ? 'var(--green)' : d.score > d.max * 0.5 ? 'var(--accent)' : 'var(--red)',
+            }} />
+          </div>
+          <div className={styles.scoreDimVal}>{d.score}/{d.max}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Variant card ──────────────────────────────────────────────
+function VariantCard({ text, index, platformId, tone, isError, isBest, isNew }) {
   const [copied, setCopied] = useState(false)
+  const [showBreakdown, setShowBreakdown] = useState(false)
   const sc = computeQualityScore(text, platformId, tone)
   const { label: slabel, color } = scoreLabel(sc)
   const p = PLATFORMS.find(x => x.id === platformId)
@@ -61,28 +129,45 @@ function VariantCard({ text, index, platformId, tone, isError, isBest }) {
 
   if (isError) return (
     <div className={`${styles.varCard} ${styles.varCardError}`}>
+      <span>⚠</span>
       <p className={styles.varError}>{text}</p>
     </div>
   )
 
   return (
-    <div className={`${styles.varCard} ${isBest ? styles.varCardBest : ''}`}>
+    <div className={`${styles.varCard} ${isBest ? styles.varCardBest : ''} ${isNew ? styles.varCardNew : ''}`}>
+      {/* Header */}
       <div className={styles.varHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className={styles.varNum}>Variant {index + 1}</span>
+        <div className={styles.varHeaderLeft}>
+          <span className={styles.varNum}>#{index + 1}</span>
           {isBest && <span className={styles.bestBadge}>✦ Best</span>}
+          {overLimit && <span className={styles.overLimit}>Over limit</span>}
         </div>
         <div className={styles.varActions}>
-          {overLimit && <span className={styles.overLimit}>Over limit</span>}
+          <button
+            className={styles.breakdownBtn}
+            onClick={() => setShowBreakdown(s => !s)}
+            title="Score breakdown"
+          >
+            {showBreakdown ? 'Hide breakdown' : `${sc} pts`}
+          </button>
           <button className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ''}`} onClick={copy}>
             {copied ? '✓ Copied' : 'Copy'}
           </button>
         </div>
       </div>
-      <p className={styles.varText}>{text}</p>
+
+      {/* Content */}
+      <div className={styles.varBody}>
+        {isNew
+          ? <p className={styles.varText}><TypedText text={text} /></p>
+          : <p className={styles.varText}>{text}</p>}
+      </div>
+
+      {/* Score row */}
       <div className={styles.varFooter}>
         <span className={styles.charCount} style={{ color: overLimit ? 'var(--red)' : 'var(--text3)' }}>
-          {text.length}/{p?.limit} chars
+          {text.length}<span style={{ opacity: 0.4 }}>/{p?.limit}</span>
         </span>
         <div className={styles.scoreRow}>
           <div className={styles.scoreBar}>
@@ -92,105 +177,94 @@ function VariantCard({ text, index, platformId, tone, isError, isBest }) {
           <span className={styles.scoreLabel} style={{ color }}>{slabel}</span>
         </div>
       </div>
+
+      {/* Expandable breakdown */}
+      {showBreakdown && <ScoreBreakdown text={text} platformId={platformId} />}
     </div>
   )
 }
 
-function SkeletonCard() {
+// ── Skeleton ──────────────────────────────────────────────────
+function SkeletonCard({ delay = 0 }) {
   return (
-    <div style={{
-      background: 'var(--bg2)', border: '1px solid var(--border)',
-      borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 10,
-    }}>
-      {[100, 85, 60, 40].map((w, i) => (
-        <div key={i} style={{
-          height: i === 0 ? 10 : 12, borderRadius: 6, width: `${w}%`,
-          background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
-          backgroundSize: '200% 100%',
-          animation: 'shimmer 1.4s infinite',
-          animationDelay: `${i * 0.1}s`,
-        }} />
+    <div className={styles.skeleton} style={{ animationDelay: `${delay}s` }}>
+      {[92, 100, 78, 55, 40].map((w, i) => (
+        <div key={i} className={styles.skeletonLine} style={{ width: `${w}%`, animationDelay: `${i * 0.06}s` }} />
       ))}
-      <div style={{ marginTop: 8, height: 4, borderRadius: 2, width: '70%', background: 'rgba(255,255,255,0.06)' }} />
+      <div className={styles.skeletonFooter}>
+        <div className={styles.skeletonLine} style={{ width: '30%', height: 3 }} />
+        <div className={styles.skeletonLine} style={{ width: '40%', height: 3 }} />
+      </div>
     </div>
   )
 }
 
-function downloadAllVariants(results, productName) {
-  const lines = []
-  lines.push(`CONTENTSPARK AI — Generated Content`)
-  lines.push(`Product: ${productName}`)
-  lines.push(`Generated: ${new Date().toLocaleString()}`)
-  lines.push('='.repeat(60))
-  lines.push('')
-
+// ── Download ──────────────────────────────────────────────────
+function downloadAll(results, productName) {
+  const lines = ['CONTENTSPARK AI — Generated Content', `Product: ${productName}`, `Generated: ${new Date().toLocaleString()}`, '='.repeat(60), '']
   Object.entries(results).forEach(([key, variants]) => {
     const [platId, ct] = key.split('__')
     const pl = PLATFORMS.find(x => x.id === platId)
-    lines.push(`▸ ${pl?.label} — ${ct}`)
-    lines.push('-'.repeat(40))
-    variants.forEach((v, i) => {
-      lines.push(`Variant ${i + 1}:`)
-      lines.push(v)
-      lines.push('')
-    })
+    lines.push(`▸ ${pl?.label} — ${ct}`, '-'.repeat(40))
+    variants.forEach((v, i) => { lines.push(`Variant ${i + 1}:`, v, '') })
     lines.push('')
   })
-
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = url
-  a.download = `contentspark-${productName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.txt`
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }))
+  a.download = `contentspark-${productName.replace(/\s+/g, '-').toLowerCase()}.txt`
   a.click()
-  URL.revokeObjectURL(url)
 }
 
-function ResultsSection({ results, tone, productName }) {
+// ── Results section ────────────────────────────────────────────
+function ResultsSection({ results, tone, productName, isNew }) {
   const [activeTab, setActiveTab] = useState(() => Object.keys(results)[0] || null)
-
   const tabs = Object.keys(results)
   const [platId, ct] = activeTab ? activeTab.split('__') : []
   const variants = activeTab ? results[activeTab] || [] : []
   const p = PLATFORMS.find(x => x.id === platId)
 
+  const scores = variants.filter(v => !v.startsWith('Error:')).map(v => computeQualityScore(v, platId, tone))
+  const bestIdx = scores.length ? scores.indexOf(Math.max(...scores)) : -1
+  const totalVariants = Object.values(results).flat().length
+
   return (
     <div className={styles.results}>
+      {/* Results header */}
       <div className={styles.resultsHeader}>
         <div>
-          <h2 className={styles.resultsTitle}>Generated Content</h2>
+          <h2 className={styles.resultsTitle}>
+            Generated Content
+          </h2>
           <p className={styles.resultsSub}>
-            {tabs.length} combination{tabs.length > 1 ? 's' : ''} · 3 variants each
+            <span style={{ color: 'var(--green)', fontWeight: 700 }}>{totalVariants} variants</span>
+            {' '}across {tabs.length} combination{tabs.length > 1 ? 's' : ''} · Click score to see breakdown
           </p>
         </div>
-        <div className={styles.resultsMeta} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
-            onClick={() => downloadAllVariants(results, productName)}
-            style={{
-              padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              border: '1px solid var(--border2)', background: 'var(--surface2)',
-              color: 'var(--text2)', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)' }}
+            onClick={() => downloadAll(results, productName)}
+            className={styles.downloadBtn}
           >
             ↓ Download .txt
           </button>
           <span className={styles.groqBadge}>
             <span className={styles.groqDot} />
-            Generated with Groq
+            Groq · LLaMA 3.3 70B
           </span>
         </div>
       </div>
 
+      {/* Tabs */}
       <div className={styles.tabs}>
         {tabs.map(key => {
           const [pid, ctype] = key.split('__')
           const pl = PLATFORMS.find(x => x.id === pid)
+          const tabVars = results[key] || []
+          const tabScores = tabVars.filter(v => !v.startsWith('Error:')).map(v => computeQualityScore(v, pid, tone))
+          const avg = tabScores.length ? Math.round(tabScores.reduce((a, b) => a + b, 0) / tabScores.length) : 0
+          const { color } = scoreLabel(avg)
           return (
-            <button
-              key={key}
+            <button key={key}
               className={`${styles.tab} ${key === activeTab ? styles.tabActive : ''}`}
               onClick={() => setActiveTab(key)}
             >
@@ -198,81 +272,54 @@ function ResultsSection({ results, tone, productName }) {
               <span>{pl?.label}</span>
               <span className={styles.tabSep}>·</span>
               <span>{ctype}</span>
+              <span className={styles.tabScore} style={{ color }}>{avg}</span>
             </button>
           )
         })}
       </div>
 
+      {/* Platform info */}
       {p && (
         <div className={styles.platformInfo}>
-          <span className={styles.platformIcon}>{p.icon}</span>
-          <span>{p.label}</span>
+          <span>{p.icon} {p.label}</span>
           <span className={styles.platformDivider} />
           <span>Max {p.limit} chars</span>
           <span className={styles.platformDivider} />
           <span>Tone: {tone}</span>
           <span className={styles.platformDivider} />
-          <span>Content: {ct}</span>
+          <span>{ct}</span>
         </div>
       )}
 
+      {/* Variant grid */}
       <div className={styles.varGrid}>
-        {variants.map((v, i) => {
-          const sc = computeQualityScore(v, platId, tone)
-          const scores = variants.map(x => computeQualityScore(x, platId, tone))
-          const bestIdx = scores.indexOf(Math.max(...scores))
-          return (
-            <VariantCard
-              key={i}
-              text={v}
-              index={i}
-              platformId={platId}
-              tone={tone}
-              isError={v.startsWith('Error:')}
-              isBest={i === bestIdx && !v.startsWith('Error:')}
-            />
-          )
-        })}
+        {variants.map((v, i) => (
+          <VariantCard
+            key={`${activeTab}_${i}`}
+            text={v}
+            index={i}
+            platformId={platId}
+            tone={tone}
+            isError={v.startsWith('Error:')}
+            isBest={i === bestIdx && !v.startsWith('Error:')}
+            isNew={isNew}
+          />
+        ))}
       </div>
     </div>
   )
 }
 
-const DEMO_EXAMPLES = [
-  {
-    label: '🕯️ Soy Candles',
-    productName: 'Hand-poured Soy Candles',
-    description: 'Small-batch soy candles in seasonal scents — pumpkin spice, cedarwood, and vanilla oak. Made by hand in limited quantities. Perfect as gifts or a cozy home treat.',
-    platform: 'instagram',
-    tone: 'Playful',
-    contentType: 'Social Post',
-    cta: 'Shop Now',
-    emojiPref: 'On',
-  },
-  {
-    label: '🍔 Food Truck',
-    productName: 'Spice Route Food Truck',
-    description: 'South Asian street food truck serving authentic butter chicken wraps, masala fries, and mango lassi. Operating in downtown Mumbai. Fresh, fast, and full of flavour.',
-    platform: 'twitter',
-    tone: 'Urgent',
-    contentType: 'Social Post',
-    cta: 'Visit Us',
-    emojiPref: 'On',
-  },
-  {
-    label: '🧶 Etsy Shop',
-    productName: 'Knitted Goods by Sandra',
-    description: 'Hand-knitted scarves, beanies, and baby blankets made from premium merino wool. Each piece takes 4–8 hours to craft. Warm, personal, and unique — no two items are identical.',
-    platform: 'facebook',
-    tone: 'Conversational',
-    contentType: 'Product Description',
-    cta: 'Shop Now',
-    emojiPref: 'Minimal',
-  },
+// ── Demo examples ─────────────────────────────────────────────
+const DEMOS = [
+  { label: '🕯️ Soy Candles', productName: 'Hand-poured Soy Candles', description: 'Small-batch soy candles in seasonal scents — pumpkin spice, cedarwood, vanilla oak. Hand-poured in limited quantities. Perfect as gifts or a cozy home treat.', platform: 'instagram', tone: 'Playful', contentType: 'Social Post', cta: 'Shop Now', emojiPref: 'On' },
+  { label: '🍛 Food Truck', productName: 'Spice Route Food Truck', description: 'South Asian street food truck serving authentic butter chicken wraps, masala fries, mango lassi. Downtown Mumbai. Fresh, fast, full of flavour.', platform: 'twitter', tone: 'Urgent', contentType: 'Social Post', cta: 'Visit Us', emojiPref: 'On' },
+  { label: '🧶 Etsy Shop', productName: 'Knitted Goods by Sandra', description: 'Hand-knitted scarves, beanies, baby blankets from premium merino wool. Each piece takes 4–8 hours. Warm, personal, unique — no two identical.', platform: 'facebook', tone: 'Conversational', contentType: 'Product Description', cta: 'Shop Now', emojiPref: 'Minimal' },
 ]
 
+// ── Main Generator ────────────────────────────────────────────
 export default function Generator() {
-  const groqApiKey = import.meta.env.VITE_GROQ_API_KEY || ''
+  const groqKey = import.meta.env.VITE_GROQ_API_KEY || ''
   const [productName, setProductName] = useState('')
   const [description, setDescription] = useState('')
   const [selPlatforms, setSelPlatforms] = useState(['instagram'])
@@ -285,143 +332,110 @@ export default function Generator() {
   const [error, setError] = useState('')
   const [results, setResults] = useState({})
   const [progress, setProgress] = useState(0)
+  const [isNew, setIsNew] = useState(false)
   const resultsRef = useRef(null)
 
-  const toggleArr = (arr, setArr, val) =>
-    setArr(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val])
+  const toggle = (arr, set, val) =>
+    set(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val])
 
-  const fillDemo = (demo) => {
-    setProductName(demo.productName)
-    setDescription(demo.description)
-    setSelPlatforms([demo.platform])
-    setTone(demo.tone)
-    setSelCTs([demo.contentType])
-    setCta(demo.cta)
-    setEmojiPref(demo.emojiPref)
-    setResults({})
-    setError('')
+  const fillDemo = (d) => {
+    setProductName(d.productName); setDescription(d.description)
+    setSelPlatforms([d.platform]); setTone(d.tone)
+    setSelCTs([d.contentType]); setCta(d.cta)
+    setEmojiPref(d.emojiPref); setResults({}); setError('')
+    showToast(`✦ Loaded: ${d.label}`)
   }
 
   const validate = () => {
-    if (!groqApiKey) { setError('Groq API key not configured. Add VITE_GROQ_API_KEY to your environment variables.'); return false }
-    if (!productName.trim()) { setError('Product / Service name is required.'); return false }
-    if (!description.trim()) { setError('Description is required.'); return false }
-    if (description.trim().length < 10) { setError('Description is too short — add more detail for better results.'); return false }
-    if (selPlatforms.length === 0) { setError('Select at least one platform.'); return false }
-    if (selCTs.length === 0) { setError('Select at least one content type.'); return false }
+    if (!groqKey) { setError('Groq API key not configured. Add VITE_GROQ_API_KEY to Vercel env vars.'); return false }
+    if (!productName.trim()) { setError('Product name is required.'); return false }
+    if (!description.trim() || description.length < 10) { setError('Add a more detailed description for better results.'); return false }
+    if (!selPlatforms.length) { setError('Select at least one platform.'); return false }
+    if (!selCTs.length) { setError('Select at least one content type.'); return false }
     return true
   }
 
   const generate = useCallback(async () => {
     if (!validate()) return
-    setLoading(true)
-    setError('')
-    setResults({})
-    setProgress(0)
-
-    const tasks = []
-    for (const p of selPlatforms) for (const ct of selCTs) tasks.push({ p, ct })
-
+    setLoading(true); setError(''); setResults({}); setProgress(0); setIsNew(true)
+    const tasks = selPlatforms.flatMap(p => selCTs.map(ct => ({ p, ct })))
     const newResults = {}
     let done = 0
 
     for (const { p, ct } of tasks) {
       const pl = PLATFORMS.find(x => x.id === p)
-      setLoadingStatus(`Generating ${ct} for ${pl?.label}...`)
+      setLoadingStatus(`Writing ${ct} for ${pl?.label}...`)
       const key = `${p}__${ct}`
       try {
         const res = await fetch(GROQ_API, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${groqApiKey}`,
-          },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
           body: JSON.stringify({
-            model: MODEL,
-            max_tokens: 1200,
-            temperature: 0.88,
+            model: MODEL, max_tokens: 1200, temperature: 0.88,
             messages: [{ role: 'user', content: buildPrompt(p, ct, { productName, description, tone, cta, emojiPref }) }],
           }),
         })
-
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}))
-          throw new Error(errData?.error?.message || `HTTP ${res.status} — check your API key`)
+          const e = await res.json().catch(() => ({}))
+          throw new Error(e?.error?.message || `HTTP ${res.status}`)
         }
-
         const data = await res.json()
         const raw = data.choices?.[0]?.message?.content || ''
         const variants = raw.split('---VARIANT---').map(v => v.trim()).filter(Boolean).slice(0, 3)
-        const scores = variants.map(v => computeQualityScore(v, p, tone))
-        newResults[key] = variants.length >= 1 ? variants : ['No content returned. Try again.']
+        newResults[key] = variants.length ? variants : ['No content returned. Try regenerating.']
       } catch (e) {
         newResults[key] = [`Error: ${e.message}`]
+        showToast(`Error on ${pl?.label}`, 'error')
       }
-
       done++
       setProgress(Math.round((done / tasks.length) * 100))
       setResults({ ...newResults })
     }
+    setLoading(false); setLoadingStatus('')
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+    showToast(`✦ ${Object.values(newResults).flat().length} variants generated`)
+  }, [groqKey, productName, description, selPlatforms, tone, selCTs, cta, emojiPref])
 
-    setLoading(false)
-    setLoadingStatus('')
-    setTimeout(() => {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 200)
-  }, [productName, description, selPlatforms, tone, selCTs, cta, emojiPref])
-
-  const hasResults = Object.keys(results).length > 0
+  const hasResults = !!Object.keys(results).length
+  const totalVariants = selPlatforms.length * selCTs.length * 3
 
   return (
     <section id="generator" className={styles.section}>
-      {/* Section label */}
       <div className={styles.sectionLabel}>
         <span className={styles.labelLine} />
-        <span>Content Generator</span>
+        <span>AI Content Generator</span>
         <span className={styles.labelLine} />
       </div>
 
       <div className={styles.container}>
-        {/* Demo examples bar */}
+        {/* Demo bar */}
         <div className={styles.demoBar}>
-          <span className={styles.demoLabel}>✦ Try an example:</span>
+          <span className={styles.demoLabel}>✦ Try a demo:</span>
           <div className={styles.demoButtons}>
-            {DEMO_EXAMPLES.map(demo => (
-              <button
-                key={demo.label}
-                className={styles.demoBtn}
-                onClick={() => fillDemo(demo)}
-              >
-                {demo.label}
-              </button>
+            {DEMOS.map(d => (
+              <button key={d.label} className={styles.demoBtn} onClick={() => fillDemo(d)}>{d.label}</button>
             ))}
           </div>
         </div>
 
         {/* Form card */}
         <div className={styles.formCard}>
-          {/* Row 1: Name + CTA */}
+          {/* Top accent */}
+          <div className={styles.formCardAccent} />
+
+          {/* Name + CTA */}
           <div className={styles.row2}>
             <div className={styles.field}>
-              <label className={styles.label}>
-                Product / Service Name <span className={styles.req}>*</span>
-              </label>
-              <input
-                className={styles.input}
-                value={productName}
+              <label className={styles.label}>Product / Service <span className={styles.req}>*</span></label>
+              <input className={styles.input} value={productName}
                 onChange={e => setProductName(e.target.value)}
-                placeholder="e.g. Hand-poured Soy Candles, South Asian Food Truck…"
-              />
+                placeholder="e.g. Hand-poured Soy Candles" />
             </div>
             <div className={styles.field}>
               <label className={styles.label}>Call to Action</label>
-              <select
-                className={styles.input}
-                value={cta}
-                onChange={e => setCta(e.target.value)}
-              >
+              <select className={styles.input} value={cta} onChange={e => setCta(e.target.value)}>
                 <option value="">Auto-detect best CTA</option>
-                {CTAS.map(c => <option key={c} value={c}>{c}</option>)}
+                {CTAS.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
           </div>
@@ -430,69 +444,52 @@ export default function Generator() {
           <div className={styles.field}>
             <label className={styles.label}>
               Description <span className={styles.req}>*</span>
-              <span className={styles.charCount}>{description.length}/300</span>
+              <span className={styles.charCount}
+                style={{ color: description.length > 250 ? 'var(--accent)' : 'var(--text3)' }}>
+                {description.length}/300
+              </span>
             </label>
-            <textarea
-              className={`${styles.input} ${styles.textarea}`}
-              value={description}
+            <textarea className={`${styles.input} ${styles.textarea}`}
+              value={description} rows={4}
               onChange={e => setDescription(e.target.value.slice(0, 300))}
-              placeholder="What is it, who is it for, what's the key benefit or differentiator? The more specific, the better the output."
-              rows={4}
-            />
+              placeholder="What is it, who is it for, what's the key benefit? More detail = better output." />
           </div>
 
           {/* Platforms */}
           <div className={styles.field}>
             <label className={styles.label}>
-              Target Platforms <span className={styles.req}>*</span>
-              <span className={styles.fieldHint}>Multi-select</span>
+              Platforms <span className={styles.req}>*</span>
+              <span className={styles.fieldHint}>multi-select</span>
             </label>
             <div className={styles.chipGroup}>
               {PLATFORMS.map(p => (
-                <Chip
-                  key={p.id}
-                  label={`${p.icon} ${p.label}`}
+                <Chip key={p.id} label={`${p.icon} ${p.label}`}
                   active={selPlatforms.includes(p.id)}
-                  onClick={() => toggleArr(selPlatforms, setSelPlatforms, p.id)}
-                />
+                  onClick={() => toggle(selPlatforms, setSelPlatforms, p.id)} />
               ))}
             </div>
           </div>
 
-          {/* Tone */}
-          <div className={styles.field}>
-            <label className={styles.label}>
-              Brand Tone
-              <span className={styles.fieldHint}>Single select</span>
-            </label>
-            <div className={styles.chipGroup}>
-              {TONES.map(t => (
-                <Chip
-                  key={t.id}
-                  label={t.id}
-                  desc={t.desc}
-                  active={tone === t.id}
-                  onClick={() => setTone(t.id)}
-                />
-              ))}
+          {/* Tone + Content type side by side */}
+          <div className={styles.row2}>
+            <div className={styles.field}>
+              <label className={styles.label}>Brand Tone <span className={styles.fieldHint}>single</span></label>
+              <div className={styles.chipGroup}>
+                {TONES.map(t => (
+                  <Chip key={t.id} label={t.id} desc={t.desc}
+                    active={tone === t.id} onClick={() => setTone(t.id)} />
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Content Types */}
-          <div className={styles.field}>
-            <label className={styles.label}>
-              Content Types <span className={styles.req}>*</span>
-              <span className={styles.fieldHint}>Multi-select</span>
-            </label>
-            <div className={styles.chipGroup}>
-              {CONTENT_TYPES.map(ct => (
-                <Chip
-                  key={ct.id}
-                  label={`${ct.icon} ${ct.id}`}
-                  active={selCTs.includes(ct.id)}
-                  onClick={() => toggleArr(selCTs, setSelCTs, ct.id)}
-                />
-              ))}
+            <div className={styles.field}>
+              <label className={styles.label}>Content Types <span className={styles.req}>*</span> <span className={styles.fieldHint}>multi</span></label>
+              <div className={styles.chipGroup}>
+                {CONTENT_TYPES.map(ct => (
+                  <Chip key={ct.id} label={`${ct.icon} ${ct.id}`}
+                    active={selCTs.includes(ct.id)}
+                    onClick={() => toggle(selCTs, setSelCTs, ct.id)} />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -500,82 +497,68 @@ export default function Generator() {
           <div className={styles.field}>
             <label className={styles.label}>Emoji Usage</label>
             <div className={styles.chipGroup}>
-              {EMOJI_PREFS.map(e => (
-                <Chip key={e} label={e} active={emojiPref === e} onClick={() => setEmojiPref(e)} />
-              ))}
+              {EMOJI_PREFS.map(e => <Chip key={e} label={e} active={emojiPref === e} onClick={() => setEmojiPref(e)} />)}
             </div>
           </div>
 
-          {/* Summary preview */}
+          {/* Summary */}
           <div className={styles.summary}>
-            <span className={styles.summaryItem}>
-              <strong>{selPlatforms.length}</strong> platform{selPlatforms.length !== 1 ? 's' : ''}
-            </span>
-            <span className={styles.summaryDot} />
-            <span className={styles.summaryItem}>
-              <strong>{selCTs.length}</strong> content type{selCTs.length !== 1 ? 's' : ''}
-            </span>
-            <span className={styles.summaryDot} />
-            <span className={styles.summaryItem}>
-              <strong>{selPlatforms.length * selCTs.length * 3}</strong> total variants
-            </span>
+            <div className={styles.summaryLeft}>
+              <span className={styles.summaryBig}>{totalVariants}</span>
+              <span className={styles.summarySmall}>variants will be generated</span>
+            </div>
+            <div className={styles.summaryRight}>
+              <span>{selPlatforms.length} platform{selPlatforms.length !== 1 ? 's' : ''}</span>
+              <span className={styles.summaryDot} />
+              <span>{selCTs.length} type{selCTs.length !== 1 ? 's' : ''}</span>
+              <span className={styles.summaryDot} />
+              <span>3 variants each</span>
+            </div>
           </div>
 
-          {/* Error */}
-          {error && (
-            <div className={styles.error}>
-              <span>⚠</span> {error}
-            </div>
-          )}
+          {error && <div className={styles.error}><span>⚠</span> {error}</div>}
 
           {/* Generate button */}
-          <button
-            className={`${styles.genBtn} ${loading ? styles.genBtnLoading : ''}`}
-            onClick={generate}
-            disabled={loading}
-          >
+          <button className={`${styles.genBtn} ${loading ? styles.genBtnLoading : ''}`}
+            onClick={generate} disabled={loading}>
             {loading ? (
               <span className={styles.loadingInner}>
                 <span className={styles.spinner} />
-                <span className={styles.loadingText}>{loadingStatus || 'Generating…'}</span>
-                <span className={styles.loadingProgress}>{progress}%</span>
+                <span>{loadingStatus || 'Generating…'}</span>
+                <span className={styles.progressPill}>{progress}%</span>
               </span>
             ) : (
               <span className={styles.btnInner}>
-                <span>✦</span>
-                Generate {selPlatforms.length * selCTs.length * 3} variants with Groq
+                <span className={styles.btnSpark}>✦</span>
+                Generate {totalVariants} variants with Groq
                 <span className={styles.btnArrow}>→</span>
               </span>
             )}
           </button>
 
-          {/* Progress bar */}
           {loading && (
             <div className={styles.progressTrack}>
               <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+              <div className={styles.progressGlow} style={{ left: `${progress}%` }} />
             </div>
           )}
         </div>
 
-        {/* Results / Skeleton */}
+        {/* Skeleton or results */}
         <div ref={resultsRef}>
-          {loading && Object.keys(results).length === 0 && (
-            <div style={{ marginTop: 48 }}>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ height: 28, width: 220, borderRadius: 8, background: 'rgba(255,255,255,0.05)', marginBottom: 8 }} />
-                <div style={{ height: 16, width: 160, borderRadius: 6, background: 'rgba(255,255,255,0.03)' }} />
+          {loading && !hasResults && (
+            <div className={styles.skeletonWrap}>
+              <div className={styles.skeletonHeader}>
+                <div className={styles.skeletonTitle} />
+                <div className={styles.skeletonSubtitle} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                <SkeletonCard /><SkeletonCard /><SkeletonCard />
+              <div className={styles.varGrid}>
+                <SkeletonCard delay={0} /><SkeletonCard delay={0.1} /><SkeletonCard delay={0.2} />
               </div>
             </div>
           )}
           {hasResults && (
-            <ResultsSection
-              results={results}
-              tone={tone}
-              productName={productName}
-            />
+            <ResultsSection results={results} tone={tone} productName={productName} isNew={isNew} />
           )}
         </div>
       </div>

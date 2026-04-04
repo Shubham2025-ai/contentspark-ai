@@ -187,7 +187,7 @@ export function AIArchSection() {
         <div style={{
           marginTop: 20, padding: '24px 32px',
           background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: var_r_lg, display: 'flex', alignItems: 'center',
+          borderRadius: '18px', display: 'flex', alignItems: 'center',
           gap: 24, flexWrap: 'wrap',
         }}>
           {[
@@ -208,5 +208,3 @@ export function AIArchSection() {
     </section>
   )
 }
-
-const var_r_lg = '18px'
