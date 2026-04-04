@@ -399,8 +399,11 @@ export default function Generator() {
   const hasResults = !!Object.keys(results).length
   const totalVariants = selPlatforms.length * selCTs.length * 3
 
+  // Stepper: step 1 = describe, step 2 = configure, step 3 = results
+  const step = hasResults ? 3 : (productName && description) ? 2 : 1
+
   return (
-    <section id="generator" className={styles.section}>
+    <section id="generator" className={styles.section} aria-label="AI Content Generator">
       <div className={styles.sectionLabel}>
         <span className={styles.labelLine} />
         <span>AI Content Generator</span>
@@ -408,51 +411,84 @@ export default function Generator() {
       </div>
 
       <div className={styles.container}>
+
+        {/* ── Stepper ── */}
+        <div className={styles.stepper} role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={3} aria-label={`Step ${step} of 3`}>
+          {[
+            { n: 1, label: 'Describe product' },
+            { n: 2, label: 'Configure' },
+            { n: 3, label: 'Get results' },
+          ].map((s, i, arr) => (
+            <div key={s.n} className={styles.stepperItem}>
+              <div className={`${styles.stepperNum} ${step > s.n ? styles.stepperNumDone : step === s.n ? styles.stepperNumActive : ''}`}>
+                {step > s.n ? '✓' : s.n}
+              </div>
+              <span className={`${styles.stepperLabel} ${step > s.n ? styles.stepperLabelDone : step === s.n ? styles.stepperLabelActive : ''}`}>
+                {s.label}
+              </span>
+              {i < arr.length - 1 && <div className={`${styles.stepperLine} ${step > s.n ? styles.stepperLineDone : ''}`} />}
+            </div>
+          ))}
+        </div>
+
         {/* Demo bar */}
         <div className={styles.demoBar}>
-          <span className={styles.demoLabel}>✦ Try a demo:</span>
+          <span className={styles.demoLabel}>✦ Quick demo:</span>
           <div className={styles.demoButtons}>
             {DEMOS.map(d => (
-              <button key={d.label} className={styles.demoBtn} onClick={() => fillDemo(d)}>{d.label}</button>
+              <button key={d.label} className={styles.demoBtn} onClick={() => fillDemo(d)}
+                aria-label={`Load ${d.label} demo`}>{d.label}</button>
             ))}
           </div>
         </div>
 
         {/* Form card */}
         <div className={styles.formCard}>
-          {/* Top accent */}
-          <div className={styles.formCardAccent} />
+          <div className={styles.formCardAccent} aria-hidden="true" />
 
           {/* Name + CTA */}
           <div className={styles.row2}>
             <div className={styles.field}>
-              <label className={styles.label}>Product / Service <span className={styles.req}>*</span></label>
-              <input className={styles.input} value={productName}
+              <label className={styles.label} htmlFor="productName">
+                Product / Service <span className={styles.req} aria-label="required">*</span>
+              </label>
+              <input id="productName" className={styles.input} value={productName}
                 onChange={e => setProductName(e.target.value)}
-                placeholder="e.g. Hand-poured Soy Candles" />
+                placeholder="e.g. Hand-poured Soy Candles"
+                aria-required="true"
+                aria-describedby="productNameHint" />
+              <span id="productNameHint" className={styles.inputHint}>Be specific — the AI rewards detail</span>
             </div>
             <div className={styles.field}>
-              <label className={styles.label}>Call to Action</label>
-              <select className={styles.input} value={cta} onChange={e => setCta(e.target.value)}>
+              <label className={styles.label} htmlFor="ctaSelect">Call to Action</label>
+              <select id="ctaSelect" className={styles.input} value={cta} onChange={e => setCta(e.target.value)}
+                aria-describedby="ctaHint">
                 <option value="">Auto-detect best CTA</option>
                 {CTAS.map(c => <option key={c}>{c}</option>)}
               </select>
+              <span id="ctaHint" className={styles.inputHint}>Leave blank for AI to decide</span>
             </div>
           </div>
 
           {/* Description */}
           <div className={styles.field}>
-            <label className={styles.label}>
-              Description <span className={styles.req}>*</span>
+            <label className={styles.label} htmlFor="description">
+              Description <span className={styles.req} aria-label="required">*</span>
               <span className={styles.charCount}
-                style={{ color: description.length > 250 ? 'var(--accent)' : 'var(--text3)' }}>
+                style={{ color: description.length > 250 ? 'var(--accent)' : description.length > 150 ? 'var(--text2)' : 'var(--text3)' }}
+                aria-live="polite">
                 {description.length}/300
               </span>
             </label>
-            <textarea className={`${styles.input} ${styles.textarea}`}
+            <textarea id="description" className={`${styles.input} ${styles.textarea}`}
               value={description} rows={4}
               onChange={e => setDescription(e.target.value.slice(0, 300))}
-              placeholder="What is it, who is it for, what's the key benefit? More detail = better output." />
+              placeholder="What is it? Who is it for? Key benefit? (e.g. Small-batch soy candles in seasonal scents — perfect as gifts or home treats. Hand-poured with care.)"
+              aria-required="true"
+              aria-describedby="descHint" />
+            <span id="descHint" className={styles.inputHint}>
+              {description.length < 30 ? '💡 More detail = significantly better output' : description.length < 80 ? '✓ Good start — a bit more for best results' : '✓ Great detail'}
+            </span>
           </div>
 
           {/* Platforms */}
@@ -537,17 +573,24 @@ export default function Generator() {
           </button>
 
           {loading && (
-            <div className={styles.progressTrack}>
-              <div className={styles.progressFill} style={{ width: `${progress}%` }} />
-              <div className={styles.progressGlow} style={{ left: `${progress}%` }} />
-            </div>
+            <>
+              <div className={styles.progressTrack} role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label={`Generation progress: ${progress}%`}>
+                <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+                <div className={styles.progressGlow} style={{ left: `${progress}%` }} />
+              </div>
+              {loadingStatus && (
+                <div className={styles.loadingStatus} aria-live="polite" aria-atomic="true">
+                  {loadingStatus}
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Skeleton or results */}
         <div ref={resultsRef}>
           {loading && !hasResults && (
-            <div className={styles.skeletonWrap}>
+            <div className={styles.skeletonWrap} aria-label="Generating content, please wait" aria-busy="true">
               <div className={styles.skeletonHeader}>
                 <div className={styles.skeletonTitle} />
                 <div className={styles.skeletonSubtitle} />
